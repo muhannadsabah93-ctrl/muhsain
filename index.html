@@ -49,7 +49,7 @@
             if (data) {
                 window.appData = data;
                 localStorage.setItem('FUEL_MANAGEMENT_SHARED_VEHICLES_V1', JSON.stringify(data));
-                if (window.currentSite) {
+                if (window.currentSite && typeof window.renderDashboard === 'function') {
                     window.renderDashboard();
                 }
             }
@@ -126,10 +126,6 @@
             padding: 2rem 1rem;
         }
 
-        .read-only-hide {
-            display: auto;
-        }
-
         body.mode-readonly .read-only-hide {
             display: none !important;
         }
@@ -165,7 +161,7 @@
         </div>
     </div>
 
-    <!-- MAIN HOME CONTAINER (SELECTION BETWEEN NORTH & SOUTH) -->
+    <!-- MAIN HOME CONTAINER -->
     <div id="home-container" class="hidden flex-grow flex flex-col justify-center items-center p-4 md:p-8 no-print my-auto">
         <div class="max-w-5xl w-full mx-auto flex flex-col items-center text-center space-y-10">
             
@@ -195,14 +191,12 @@
                 </svg>
             </div>
 
-            <!-- Two Big Central Cube Buttons for North & South -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-8 w-full max-w-3xl pt-4">
-                
                 <button id="btn-site-north" onclick="selectSite('north')" class="cube-btn group border-sky-600/50 hover:border-sky-400">
                     <div class="cube-inner-border bg-slate-900/80">
                         <i class="fa-solid fa-compass text-6xl text-sky-400 mb-4 group-hover:scale-110 transition-transform"></i>
                         <span class="font-black text-2xl text-white">الموقع الشمالي</span>
-                        <span class="text-sm text-slate-400 mt-2 font-bold">سجل المجزين + العمليات</span>
+                        <span class="text-sm text-slate-400 mt-2 font-bold">سجل المجهزين + العمليات</span>
                     </div>
                 </button>
 
@@ -213,7 +207,6 @@
                         <span class="text-sm text-slate-400 mt-2 font-bold">سجل المجهزين + العمليات</span>
                     </div>
                 </button>
-
             </div>
 
             <div class="flex items-center gap-3 pt-6 border-t border-slate-900 w-full justify-center read-only-hide">
@@ -225,7 +218,6 @@
                     <input type="file" id="importFile" onchange="importData(event)" class="hidden" accept=".json">
                 </label>
             </div>
-
         </div>
     </div>
 
@@ -243,7 +235,6 @@
             </div>
         </div>
 
-        <!-- Five 3D Navigation Buttons inside the Site -->
         <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4 mb-8">
             <button onclick="switchTab('dashboard')" class="bg-slate-900 hover:bg-slate-800 border border-slate-800 p-4 rounded-2xl text-center transition flex flex-col items-center gap-2 group">
                 <i class="fa-solid fa-chart-pie text-2xl text-teal-400 group-hover:scale-110"></i>
@@ -270,7 +261,6 @@
         <!-- TAB 1: DASHBOARD -->
         <section id="tab-dashboard" class="hidden space-y-8">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <!-- Supplier / Add Supplier Management -->
                 <div class="bg-slate-900 p-6 md:p-8 rounded-3xl border border-slate-800 shadow-md space-y-6">
                     <h2 class="text-xl font-black text-white flex items-center justify-between border-b border-slate-800 pb-4">
                         <span id="dashboard-suppliers-title">إدارة أسماء المجهزين</span>
@@ -293,7 +283,6 @@
                     </div>
                 </div>
 
-                <!-- Vehicle Management (Shared) -->
                 <div class="bg-slate-900 p-6 md:p-8 rounded-3xl border border-slate-800 shadow-md space-y-6">
                     <h2 class="text-xl font-black text-white flex items-center justify-between border-b border-slate-800 pb-4">
                         <span>إدارة الآليات المشتركة و الـ QR Code</span>
@@ -326,21 +315,18 @@
                 </div>
             </div>
 
-            <!-- Monthly / Annual Summary Section -->
             <div class="pt-6 border-t border-slate-800/80 space-y-6">
                 <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                     <h3 class="text-2xl font-black text-white flex items-center gap-3">
                         <i class="fa-solid fa-chart-line text-teal-400"></i>
                         الإحصائيات الحسابية للموقع الحالي
                     </h3>
-
                     <div class="flex items-center gap-3 bg-slate-900 p-2 rounded-2xl border border-slate-800">
                         <select id="stat-filter-type" onchange="updateDashboardStats()" class="bg-slate-950 text-slate-200 text-base font-bold p-2.5 rounded-xl border border-slate-700 focus:outline-none focus:border-teal-500">
                             <option value="monthly">تصفية حسب الشهر والسنة</option>
                             <option value="annual">تصفية سنوية بالكامل</option>
                             <option value="all">إجمالي تراكمي كلي</option>
                         </select>
-
                         <input type="month" id="stat-filter-month" onchange="updateDashboardStats()" class="bg-slate-950 text-white text-base font-bold p-2.5 rounded-xl border border-slate-700">
                     </div>
                 </div>
@@ -488,7 +474,6 @@
                         </button>
                     </form>
                 </div>
-
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6" id="supplier-cards-grid"></div>
             </div>
 
@@ -670,7 +655,6 @@
         <div class="bg-white text-slate-950 p-8 rounded-3xl max-w-md w-full text-center space-y-6 shadow-2xl">
             <h3 class="text-2xl font-black" id="modal-vehicle-title">بطاقة تعريف QR الآلية</h3>
             <div class="border-2 border-slate-900 p-6 rounded-2xl bg-white flex flex-col items-center justify-center space-y-4">
-                
                 <div class="w-16 h-16 flex items-center justify-center">
                     <svg viewBox="0 0 200 220" class="w-full h-full">
                         <path d="M 100,20 L 180,65 L 180,155 L 100,200 L 20,155 L 20,65 Z" fill="none" stroke="#0f172a" stroke-width="24" stroke-linejoin="round"/>
@@ -688,7 +672,6 @@
                     <p class="text-base font-bold">اسم السائق: <span id="modal-lbl-driver" class="text-indigo-700 font-black"></span></p>
                 </div>
 
-                <!-- QR CODE CONTAINER -->
                 <div id="qrcode-container" class="bg-white p-3 flex justify-center border border-slate-300 rounded-xl"></div>
                 <p id="modal-lbl-barcode-val" class="text-xs font-mono font-bold text-slate-500"></p>
             </div>
@@ -706,8 +689,6 @@
     <script>
         const STORAGE_KEY = 'FUEL_MANAGEMENT_SHARED_VEHICLES_V1';
 
-        // أدوار ومستويات الوصول:
-        // 'ADMIN' (1993), 'NORTH' (4444), 'SOUTH' (1111), 'VIEW' (2222)
         let currentUserRole = null; 
 
         let appData = {
@@ -727,7 +708,7 @@
             ]
         };
 
-        let currentSite = null; // 'north' أو 'south'
+        let currentSite = null;
         let selectedSupplierId = null;
         let selectedVehicleId = null;
         let activeDispatchVehicleId = null;
@@ -858,9 +839,9 @@
             document.getElementById('active-site-indicator').innerText = siteNameText;
 
             if (site === 'north') {
-                document.getElementById('suppliers-tab-label').innerText = 'سجل المجزين';
-                document.getElementById('dashboard-suppliers-title').innerText = 'إدارة سجل المجزين (الشمالي)';
-                document.getElementById('suppliers-section-main-title').innerText = 'سجل المجزين والكميات';
+                document.getElementById('suppliers-tab-label').innerText = 'سجل المجهزين';
+                document.getElementById('dashboard-suppliers-title').innerText = 'إدارة سجل المجهزين (الشمالي)';
+                document.getElementById('suppliers-section-main-title').innerText = 'سجل المجهزين والكميات';
                 document.getElementById('receive-form-title').innerHTML = '<i class="fa-solid fa-arrow-down-left-long text-emerald-400"></i> استلام كاز جديد (الموقع الشمالي)';
                 document.getElementById('rec-supplier-label').innerText = 'اسم المجهز (الشمالي) *';
                 document.getElementById('new-supplier-inline-label').innerText = 'أدخل اسم المجهز الشمالي الجديد *';
@@ -1329,7 +1310,6 @@
         }
 
         function renderDashboard() {
-            const isReadonly = currentUserRole === 'VIEW';
             const supTbody = document.getElementById('suppliers-list-table');
             if (supTbody) {
                 supTbody.innerHTML = appData[currentSite].suppliers.map(s => `
@@ -1431,7 +1411,6 @@
 
             let dispatches = appData[currentSite].dispatches.filter(d => d.supplierId === supplier.id);
 
-            // تصفية حسب التاريخ (من - إلى)
             if (dateStart) {
                 dispatches = dispatches.filter(d => d.date && d.date.substring(0, 10) >= dateStart);
             }
@@ -1548,7 +1527,6 @@
                 .filter(d => d.vehicleId === vehicle.id)
                 .forEach(d => allDispatches.push({ ...d, siteSource: 'south' }));
 
-            // تصفية حسب التاريخ (من - إلى)
             if (dateStart) {
                 allDispatches = allDispatches.filter(d => d.date && d.date.substring(0, 10) >= dateStart);
             }
@@ -1625,7 +1603,7 @@
                 try {
                     appData = JSON.parse(e.target.result);
                     saveData();
-                    if (currentSite) {
+                    if (currentSite && typeof renderDashboard === 'function') {
                         renderDashboard();
                     }
                     alert('تم استعادة النسخة الاحتياطية بنجاح!');
