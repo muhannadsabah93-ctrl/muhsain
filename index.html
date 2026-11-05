@@ -12,6 +12,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&display=swap" rel="stylesheet">
     <!-- QRCode.js Library -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <!-- HTML5 QR Code Scanner Library for Live Camera Scanning -->
+    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
     
     <!-- Firebase JS SDK (v10 Modular via CDN) -->
     <script type="module">
@@ -65,7 +67,7 @@
         }
 
         @media print {
-            .no-print, main, header, footer, #login-container, #home-container, #views-container, #barcode-modal { 
+            .no-print, main, header, footer, #login-container, #home-container, #views-container, #barcode-modal, #camera-scanner-modal { 
                 display: none !important; 
             }
             body { 
@@ -128,6 +130,13 @@
 
         body.mode-readonly .read-only-hide {
             display: none !important;
+        }
+
+        #interactive-scanner video {
+            width: 100% !important;
+            height: auto !important;
+            border-radius: 1rem;
+            object-fit: cover;
         }
     </style>
 </head>
@@ -413,11 +422,18 @@
                 <form onsubmit="saveDispatch(event)" class="space-y-6">
                     <div>
                         <label class="block text-base font-bold text-slate-300 mb-2">
-                            اختر الآلية المشتركة المستفيدة (ابحث بررمز الآلية، اسم السائق، أو مسح الكود) *
+                            اختر الآلية المستفيدة (ابحث برمز الآلية، اسم السائق، أو مسح الباركود مباشرة) *
                         </label>
-                        <div class="relative">
-                            <input type="text" id="disp-unified-search" list="vehicles-datalist" oninput="onUnifiedVehicleSearchChange()" placeholder="ابحث أو امسح الـ QR..." required class="w-full p-4 pr-12 text-lg bg-slate-950 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-teal-500 font-bold">
-                            <i class="fa-solid fa-qrcode text-teal-400 text-2xl absolute left-4 top-1/2 -translate-y-1/2"></i>
+                        <div class="flex gap-3">
+                            <div class="relative flex-grow">
+                                <input type="text" id="disp-unified-search" list="vehicles-datalist" oninput="onUnifiedVehicleSearchChange()" placeholder="ابحث بالنص أو امسح الـ QR..." required class="w-full p-4 pr-12 text-lg bg-slate-950 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-teal-500 font-bold">
+                                <i class="fa-solid fa-qrcode text-teal-400 text-2xl absolute left-4 top-1/2 -translate-y-1/2"></i>
+                            </div>
+                            <!-- CAMERA SCANNER LAUNCH BUTTON -->
+                            <button type="button" onclick="startCameraScanner()" class="bg-teal-600 hover:bg-teal-500 text-white px-5 rounded-xl font-bold flex items-center gap-2 transition whitespace-nowrap shadow-lg shadow-teal-900/30">
+                                <i class="fa-solid fa-camera text-xl"></i>
+                                <span>مسح بالكاميرا</span>
+                            </button>
                         </div>
                         <datalist id="vehicles-datalist"></datalist>
                     </div>
@@ -442,9 +458,9 @@
                         <input type="text" id="disp-driver-name" placeholder="أدخل اسم السائق..." class="w-full p-4 text-lg bg-slate-950 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-teal-500 font-bold">
                     </div>
 
-                    <div>
-                        <label class="block text-base font-bold text-slate-300 mb-2">الكمية المجهزة (باللتر) *</label>
-                        <input type="number" step="0.1" id="disp-qty" required min="0.1" placeholder="0.0" class="w-full p-4 text-lg bg-slate-950 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-teal-500 font-bold">
+                    <div id="qty-container">
+                        <label class="block text-base font-bold text-amber-400 mb-2">الكمية المجهزة (باللتر) *</label>
+                        <input type="number" step="0.1" id="disp-qty" required min="0.1" placeholder="أدخل الكمية باللتر فوراً..." class="w-full p-4 text-xl bg-slate-950 border-2 border-amber-500/70 text-amber-300 rounded-xl focus:outline-none focus:border-amber-400 font-black">
                     </div>
 
                     <div>
@@ -452,8 +468,9 @@
                         <textarea id="disp-notes" rows="3" placeholder="تفاصيل التجهيز..." class="w-full p-4 text-lg bg-slate-950 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-teal-500"></textarea>
                     </div>
 
-                    <button type="submit" class="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-black py-5 rounded-2xl text-xl transition shadow-xl shadow-amber-500/20">
-                        حفظ عملية التجهيز وتسجيل الموقع في السجل
+                    <button type="submit" class="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-black py-5 rounded-2xl text-xl transition shadow-xl shadow-amber-500/20 flex items-center justify-center gap-3">
+                        <i class="fa-solid fa-check-double text-2xl"></i>
+                        <span>تم التجهيز وإضافة السجل</span>
                     </button>
                 </form>
             </div>
@@ -650,6 +667,29 @@
 
     </main>
 
+    <!-- LIVE CAMERA SCANNER MODAL -->
+    <div id="camera-scanner-modal" class="hidden fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 flex justify-center items-center p-4 no-print">
+        <div class="bg-slate-900 border border-slate-800 p-6 md:p-8 rounded-3xl max-w-lg w-full text-center space-y-6 shadow-2xl">
+            <div class="flex justify-between items-center border-b border-slate-800 pb-4">
+                <h3 class="text-xl font-black text-white flex items-center gap-2">
+                    <i class="fa-solid fa-camera text-teal-400"></i>
+                    مسح كود الآلية عبر الكاميرا
+                </h3>
+                <button onclick="stopCameraScanner()" class="text-slate-400 hover:text-white text-2xl font-bold">&times;</button>
+            </div>
+
+            <p class="text-sm font-bold text-slate-400">وجه الكاميرا مباشرة نحو بطاقة QR الخاصة بالآلية للتعرف عليها فوراً بدون ضغط أزرار</p>
+
+            <div class="overflow-hidden rounded-2xl border-2 border-teal-500/50 bg-slate-950 p-2 relative">
+                <div id="interactive-scanner" class="w-full min-h-[250px]"></div>
+            </div>
+
+            <button onclick="stopCameraScanner()" class="w-full bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold py-3.5 rounded-xl transition">
+                إغلاق الكاميرا
+            </button>
+        </div>
+    </div>
+
     <!-- SINGLE QR MODAL -->
     <div id="barcode-modal" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex justify-center items-center p-4 no-print">
         <div class="bg-white text-slate-950 p-8 rounded-3xl max-w-md w-full text-center space-y-6 shadow-2xl">
@@ -690,6 +730,7 @@
         const STORAGE_KEY = 'FUEL_MANAGEMENT_SHARED_VEHICLES_V1';
 
         let currentUserRole = null; 
+        let html5QrCodeScanner = null;
 
         let appData = {
             north: {
@@ -890,6 +931,66 @@
             currentSite = null;
             document.getElementById('views-container').classList.add('hidden');
             document.getElementById('home-container').classList.remove('hidden');
+        }
+
+        /* --- CAMERA SCANNER FUNCTIONS --- */
+        function startCameraScanner() {
+            document.getElementById('camera-scanner-modal').classList.remove('hidden');
+            
+            if (!html5QrCodeScanner) {
+                html5QrCodeScanner = new Html5Qrcode("interactive-scanner");
+            }
+
+            const config = { fps: 10, qrbox: { width: 220, height: 220 } };
+
+            html5QrCodeScanner.start(
+                { facingMode: "environment" },
+                config,
+                onScanSuccess,
+                onScanFailure
+            ).catch(err => {
+                alert("تعذر الوصول للكاميرا: " + err);
+                stopCameraScanner();
+            });
+        }
+
+        function onScanSuccess(decodedText, decodedResult) {
+            if (decodedText) {
+                // إيقاف الكاميرا فوراً
+                stopCameraScanner();
+                
+                // كتابة الكود داخل الحقل
+                const searchInput = document.getElementById('disp-unified-search');
+                searchInput.value = decodedText.trim();
+                
+                // تشغيل الدالة للتعرف على الآلية مباشرة
+                onUnifiedVehicleSearchChange();
+                
+                // تحويل التركيز فوراً إلى حقل إدخال الكمية المجهزة
+                setTimeout(() => {
+                    const qtyInput = document.getElementById('disp-qty');
+                    if (qtyInput) {
+                        qtyInput.focus();
+                        qtyInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    }
+                }, 100);
+            }
+        }
+
+        function onScanFailure(error) {
+            // يمكن الاستمرار في المسح المباشر دون عمل شيء
+        }
+
+        function stopCameraScanner() {
+            if (html5QrCodeScanner) {
+                html5QrCodeScanner.stop().then(() => {
+                    document.getElementById('camera-scanner-modal').classList.add('hidden');
+                }).catch(() => {
+                    document.getElementById('camera-scanner-modal').classList.add('hidden');
+                });
+            } else {
+                document.getElementById('camera-scanner-modal').classList.add('hidden');
+            }
         }
 
         function addSupplier(e) {
