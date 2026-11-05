@@ -422,20 +422,18 @@
                 <form onsubmit="saveDispatch(event)" class="space-y-6">
                     <div>
                         <label class="block text-base font-bold text-slate-300 mb-2">
-                            اختر الآلية المستفيدة (ابحث برمز الآلية، اسم السائق، أو مسح الباركود مباشرة) *
+                            اختر الآلية المستفيدة (اختر من القائمة المنسدلة أو امسح الـ QR بالكاميرا) *
                         </label>
                         <div class="flex gap-3">
-                            <div class="relative flex-grow">
-                                <input type="text" id="disp-unified-search" list="vehicles-datalist" oninput="onUnifiedVehicleSearchChange()" placeholder="ابحث بالنص أو امسح الـ QR..." required class="w-full p-4 pr-12 text-lg bg-slate-950 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-teal-500 font-bold">
-                                <i class="fa-solid fa-qrcode text-teal-400 text-2xl absolute left-4 top-1/2 -translate-y-1/2"></i>
-                            </div>
-                            <!-- CAMERA SCANNER LAUNCH BUTTON -->
-                            <button type="button" onclick="startCameraScanner()" class="bg-teal-600 hover:bg-teal-500 text-white px-5 rounded-xl font-bold flex items-center gap-2 transition whitespace-nowrap shadow-lg shadow-teal-900/30">
+                            <select id="disp-select-vehicle" onchange="onDropdownVehicleSelect()" class="flex-grow p-4 text-lg bg-slate-950 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-teal-500 font-bold">
+                                <option value="">-- اختر الآلية من القائمة المنسدلة --</option>
+                            </select>
+                            
+                            <button type="button" onclick="startCameraScanner()" class="bg-teal-600 hover:bg-teal-500 text-white px-6 rounded-xl font-bold flex items-center gap-2 transition whitespace-nowrap shadow-lg shadow-teal-900/30">
                                 <i class="fa-solid fa-camera text-xl"></i>
-                                <span>مسح بالكاميرا</span>
+                                <span>مسح QR بالكاميرا</span>
                             </button>
                         </div>
-                        <datalist id="vehicles-datalist"></datalist>
                     </div>
 
                     <div id="selected-veh-details-card" class="hidden bg-slate-950 p-4 rounded-2xl border border-teal-500/30 grid grid-cols-3 gap-4">
@@ -454,17 +452,17 @@
                     </div>
 
                     <div>
-                        <label class="block text-base font-bold text-slate-300 mb-2">اسم السائق (قابل للتعديل أو التأكيد)</label>
+                        <label class="block text-base font-bold text-slate-300 mb-2">اسم السائق (اختياري)</label>
                         <input type="text" id="disp-driver-name" placeholder="أدخل اسم السائق..." class="w-full p-4 text-lg bg-slate-950 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-teal-500 font-bold">
                     </div>
 
                     <div id="qty-container">
-                        <label class="block text-base font-bold text-amber-400 mb-2">الكمية المجهزة (باللتر) *</label>
+                        <label class="block text-base font-bold text-amber-400 mb-2">كمية الكاز (باللتر) *</label>
                         <input type="number" step="0.1" id="disp-qty" required min="0.1" placeholder="أدخل الكمية باللتر فوراً..." class="w-full p-4 text-xl bg-slate-950 border-2 border-amber-500/70 text-amber-300 rounded-xl focus:outline-none focus:border-amber-400 font-black">
                     </div>
 
                     <div>
-                        <label class="block text-base font-bold text-slate-300 mb-2">ملاحظات</label>
+                        <label class="block text-base font-bold text-slate-300 mb-2">ملاحظات (اختياري)</label>
                         <textarea id="disp-notes" rows="3" placeholder="تفاصيل التجهيز..." class="w-full p-4 text-lg bg-slate-950 border border-slate-700 text-white rounded-xl focus:outline-none focus:border-teal-500"></textarea>
                     </div>
 
@@ -956,17 +954,26 @@
 
         function onScanSuccess(decodedText, decodedResult) {
             if (decodedText) {
-                // إيقاف الكاميرا فوراً
                 stopCameraScanner();
                 
-                // كتابة الكود داخل الحقل
-                const searchInput = document.getElementById('disp-unified-search');
-                searchInput.value = decodedText.trim();
-                
-                // تشغيل الدالة للتعرف على الآلية مباشرة
-                onUnifiedVehicleSearchChange();
-                
-                // تحويل التركيز فوراً إلى حقل إدخال الكمية المجهزة
+                const matchedVeh = appData.vehicles.find(v => 
+                    v.code === decodedText.trim() || 
+                    v.barcode === decodedText.trim() || 
+                    generateBarcodeString(v.code) === decodedText.trim()
+                );
+
+                const selectEl = document.getElementById('disp-select-vehicle');
+                if (matchedVeh) {
+                    selectEl.value = matchedVeh.id;
+                } else {
+                    const found = appData.vehicles.find(v => v.code.includes(decodedText.trim()));
+                    if (found) {
+                        selectEl.value = found.id;
+                    }
+                }
+
+                onDropdownVehicleSelect();
+
                 setTimeout(() => {
                     const qtyInput = document.getElementById('disp-qty');
                     if (qtyInput) {
@@ -978,7 +985,7 @@
         }
 
         function onScanFailure(error) {
-            // يمكن الاستمرار في المسح المباشر دون عمل شيء
+            // صامت
         }
 
         function stopCameraScanner() {
@@ -1207,47 +1214,38 @@
         }
 
         function populateDispatchUnifiedOptions() {
-            const datalist = document.getElementById('vehicles-datalist');
-            if (!datalist) return;
+            const selectEl = document.getElementById('disp-select-vehicle');
+            if (!selectEl) return;
 
-            let html = '';
+            let html = '<option value="">-- اختر الآلية من القائمة المنسدلة --</option>';
             appData.vehicles.forEach(v => {
-                html += `<option value="${v.code}" data-id="${v.id}">رمز الآلية: ${v.code} (السائق: ${v.driver || 'غير محدد'})</option>`;
-                if (v.driver && v.driver !== 'غير محدد') {
-                    html += `<option value="${v.driver}" data-id="${v.id}">اسم السائق: ${v.driver} (${v.code})</option>`;
-                }
+                html += `<option value="${v.id}">رمز الآلية: ${v.code} — السائق: ${v.driver || 'غير محدد'}</option>`;
             });
-            datalist.innerHTML = html;
+            selectEl.innerHTML = html;
         }
 
-        function onUnifiedVehicleSearchChange() {
-            const val = document.getElementById('disp-unified-search').value.trim();
+        function onDropdownVehicleSelect() {
+            const selectEl = document.getElementById('disp-select-vehicle');
             const card = document.getElementById('selected-veh-details-card');
-            activeDispatchVehicleId = null;
+            const vehicleId = selectEl.value;
+            activeDispatchVehicleId = vehicleId || null;
 
-            if (!val) {
+            if (!vehicleId) {
                 card.classList.add('hidden');
+                document.getElementById('disp-driver-name').value = '';
                 return;
             }
 
-            const matchedVeh = appData.vehicles.find(v => 
-                v.code === val || 
-                v.barcode === val || 
-                (v.driver && v.driver === val) ||
-                generateBarcodeString(v.code) === val
-            );
-
+            const matchedVeh = appData.vehicles.find(v => v.id === vehicleId);
             if (matchedVeh) {
-                activeDispatchVehicleId = matchedVeh.id;
                 document.getElementById('card-veh-code').innerText = matchedVeh.code;
                 document.getElementById('card-veh-driver').innerText = matchedVeh.driver || 'غير محدد';
                 document.getElementById('card-veh-barcode').innerText = matchedVeh.barcode || generateBarcodeString(matchedVeh.code);
                 document.getElementById('disp-driver-name').value = matchedVeh.driver && matchedVeh.driver !== 'غير محدد' ? matchedVeh.driver : '';
                 card.classList.remove('hidden');
-                return;
+            } else {
+                card.classList.add('hidden');
             }
-
-            card.classList.add('hidden');
         }
 
         function saveReceipt(e) {
@@ -1293,14 +1291,8 @@
             if (currentUserRole === 'VIEW') return;
             
             if (!activeDispatchVehicleId) {
-                const searchVal = document.getElementById('disp-unified-search').value.trim();
-                const matched = appData.vehicles.find(v => v.code === searchVal || v.barcode === searchVal || v.driver === searchVal);
-                if (matched) {
-                    activeDispatchVehicleId = matched.id;
-                } else {
-                    alert('الرجاء اختيار أو تحديد آلية مشتركة صالحة من القائمة');
-                    return;
-                }
+                alert('الرجاء اختيار آلية مشتركة من القائمة المنسدلة أو مسح الباركود بالكاميرا');
+                return;
             }
 
             const driverName = document.getElementById('disp-driver-name').value.trim();
@@ -1332,7 +1324,7 @@
             });
 
             saveData();
-            alert('تم حفظ عملية التجهيز وتسجيلها بنجاح ضمن سجلات هذا الموقع!');
+            alert('تم التجهيز بنجاح وإضافة العملية إلى سجل الآلية وسجل الموقع!');
             e.target.reset();
             document.getElementById('selected-veh-details-card').classList.add('hidden');
             activeDispatchVehicleId = null;
