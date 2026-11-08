@@ -45,7 +45,6 @@
         onValue(appDataRef, (snapshot) => {
             const data = snapshot.val();
             if (data) {
-                // دمج البيانات المستلمة لضمان وجود القوائم دائماً
                 window.appData = sanitizeAppData(data);
                 localStorage.setItem('FUEL_MANAGEMENT_SHARED_VEHICLES_V1', JSON.stringify(window.appData));
                 if (window.currentSite && typeof window.renderDashboard === 'function') {
@@ -271,7 +270,7 @@
                     </h2>
                     <form onsubmit="addVehicle(event)" class="space-y-3 read-only-hide">
                         <div class="flex flex-col sm:flex-row gap-2 md:gap-3">
-                            <input type="text" id="vehicle-code" placeholder="رمز الآلية..." class="flex-grow p-3 md:p-4 text-sm md:text-lg bg-slate-950 border border-slate-700 text-white rounded-xl font-bold">
+                            <input type="text" id="vehicle-code" placeholder="رمز الآلية (مثل: مضخة-01 أو خباطة-02)..." class="flex-grow p-3 md:p-4 text-sm md:text-lg bg-slate-950 border border-slate-700 text-white rounded-xl font-bold">
                             <input type="text" id="vehicle-driver" placeholder="اسم السائق..." class="flex-grow p-3 md:p-4 text-sm md:text-lg bg-slate-950 border border-slate-700 text-white rounded-xl font-bold">
                         </div>
                         <button type="submit" class="w-full bg-teal-600 text-white py-3 md:py-4 rounded-xl font-black text-sm md:text-lg hover:bg-teal-500 transition">إضافة آلية مشتركة جديدة</button>
@@ -366,7 +365,7 @@
             </div>
         </section>
 
-        <!-- TAB 3: DISPATCH FUEL -->
+        <!-- TAB 3: DISPATCH FUEL (بدون حقل المجهز، وتبديل تلقائي حسب نوع الآلية) -->
         <section id="tab-dispatch" class="hidden max-w-3xl mx-auto">
             <div class="bg-slate-900 p-4 sm:p-8 md:p-10 rounded-3xl border border-slate-800 shadow-2xl space-y-6 md:space-y-8">
                 <div class="border-b border-slate-800 pb-4 md:pb-5">
@@ -400,10 +399,7 @@
                             <span class="text-sm md:text-base font-black text-indigo-400" id="card-veh-driver">-</span>
                         </div>
                     </div>
-                    <div>
-                        <label class="block text-sm md:text-base font-bold text-slate-300 mb-2">اختر المجهز (الذي يتم الخصم منه) *</label>
-                        <select id="disp-supplier" required class="w-full p-3.5 md:p-4 text-base md:text-lg bg-slate-950 border border-slate-700 text-white rounded-xl font-bold"></select>
-                    </div>
+
                     <div>
                         <label class="block text-sm md:text-base font-bold text-slate-300 mb-2">اسم السائق</label>
                         <input type="text" id="disp-driver-name" placeholder="أدخل اسم السائق..." class="w-full p-3.5 md:p-4 text-base md:text-lg bg-slate-950 border border-slate-700 text-white rounded-xl font-bold">
@@ -422,21 +418,26 @@
                             <input type="number" step="0.1" id="disp-total-in-tank" readonly class="w-full p-3.5 md:p-4 text-base md:text-lg bg-slate-900 border border-emerald-500/40 text-emerald-400 rounded-xl font-black">
                         </div>
                     </div>
+
+                    <!-- حقول الخباطة (تظهر عند اختيار خباطة أو آلية غير المضخة) -->
                     <div id="mixer-fields" class="space-y-3 md:space-y-4 bg-slate-950/60 p-4 md:p-5 rounded-2xl border border-sky-500/30">
-                        <h4 class="text-sm md:text-md font-bold text-sky-400 border-b border-slate-800 pb-2"><i class="fa-solid fa-truck-pickup"></i> تفاصيل الخباطة</h4>
+                        <h4 class="text-sm md:text-md font-bold text-sky-400 border-b border-slate-800 pb-2"><i class="fa-solid fa-truck-pickup"></i> تفاصيل الخباطة والتشغيل</h4>
                         <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                            <div><label class="block text-xs font-bold text-slate-300 mb-1">KM</label><input type="number" id="disp-km" placeholder="مثال: 125400" class="w-full p-3 bg-slate-900 border border-slate-700 text-white rounded-xl text-sm md:text-base font-bold"></div>
-                            <div><label class="block text-xs font-bold text-slate-300 mb-1">وصولات (نقلات)</label><input type="number" id="disp-trips-count" min="0" placeholder="0" class="w-full p-3 bg-slate-900 border border-slate-700 text-white rounded-xl text-sm md:text-base font-bold"></div>
-                            <div><label class="block text-xs font-bold text-slate-300 mb-1">للموقع الآخر</label><input type="number" id="disp-other-site-trips" min="0" placeholder="0" class="w-full p-3 bg-slate-900 border border-slate-700 text-white rounded-xl text-sm md:text-base font-bold"></div>
+                            <div><label class="block text-xs font-bold text-slate-300 mb-1">الكيلومترات (KM)</label><input type="number" id="disp-km" placeholder="مثال: 125400" class="w-full p-3 bg-slate-900 border border-slate-700 text-white rounded-xl text-sm md:text-base font-bold"></div>
+                            <div><label class="block text-xs font-bold text-slate-300 mb-1">عدد الوصولات (النقلات)</label><input type="number" id="disp-trips-count" min="0" placeholder="0" class="w-full p-3 bg-slate-900 border border-slate-700 text-white rounded-xl text-sm md:text-base font-bold"></div>
+                            <div><label class="block text-xs font-bold text-slate-300 mb-1">الوصولات للموقع الآخر</label><input type="number" id="disp-other-site-trips" min="0" placeholder="0" class="w-full p-3 bg-slate-900 border border-slate-700 text-white rounded-xl text-sm md:text-base font-bold"></div>
                         </div>
                     </div>
+
+                    <!-- حقول المضخة (تظهر حصرياً عند اختيار مضخة) -->
                     <div id="pump-fields" class="hidden space-y-3 md:space-y-4 bg-slate-950/60 p-4 md:p-5 rounded-2xl border border-purple-500/30">
-                        <h4 class="text-sm md:text-md font-bold text-purple-400 border-b border-slate-800 pb-2"><i class="fa-solid fa-gears"></i> تفاصيل المضخة</h4>
+                        <h4 class="text-sm md:text-md font-bold text-purple-400 border-b border-slate-800 pb-2"><i class="fa-solid fa-gears"></i> تفاصيل عمل المضخة</h4>
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                             <div><label class="block text-xs font-bold text-slate-300 mb-1">ساعات العمل</label><input type="number" step="0.5" id="disp-pump-hours" min="0" placeholder="0" class="w-full p-3 bg-slate-900 border border-slate-700 text-white rounded-xl text-sm md:text-base font-bold"></div>
-                            <div><label class="block text-xs font-bold text-slate-300 mb-1">كمية الكونكريت (م³)</label><input type="number" step="0.5" id="disp-concrete-qty" min="0" placeholder="0" class="w-full p-3 bg-slate-900 border border-slate-700 text-white rounded-xl text-sm md:text-base font-bold"></div>
+                            <div><label class="block text-xs font-bold text-slate-300 mb-1">الكمية بالكونكريت المجهز (م³)</label><input type="number" step="0.5" id="disp-concrete-qty" min="0" placeholder="0" class="w-full p-3 bg-slate-900 border border-slate-700 text-white rounded-xl text-sm md:text-base font-bold"></div>
                         </div>
                     </div>
+
                     <div>
                         <label class="block text-sm md:text-base font-bold text-slate-300 mb-2">ملاحظات</label>
                         <textarea id="disp-notes" rows="3" placeholder="ملاحظات..." class="w-full p-3.5 md:p-4 text-base md:text-lg bg-slate-950 border border-slate-700 text-white rounded-xl"></textarea>
@@ -695,7 +696,6 @@
             ]
         };
 
-        // دالة تنظيف وتأمين البيانات للوقاية من أخطاء undefined
         function sanitizeAppData(raw) {
             if (!raw) raw = {};
             if (!raw.north) raw.north = {};
@@ -1022,6 +1022,7 @@
             selectEl.innerHTML = '<option value="">-- اختر الآلية من القائمة --</option>' + (appData.vehicles || []).map(v => `<option value="${v.id}">رمز الآلية: ${v.code} — السائق: ${v.driver || 'غير محدد'}</option>`).join('');
         }
 
+        // التبديل التلقائي الذكي بحسب نوع الآلية المختارة
         function onDropdownVehicleSelect() {
             const vehicleId = document.getElementById('disp-select-vehicle').value;
             activeDispatchVehicleId = vehicleId || null;
@@ -1029,7 +1030,11 @@
             const mixerFields = document.getElementById('mixer-fields');
             const pumpFields = document.getElementById('pump-fields');
 
-            if (!vehicleId) { card.classList.add('hidden'); document.getElementById('disp-driver-name').value = ''; return; }
+            if (!vehicleId) { 
+                card.classList.add('hidden'); 
+                document.getElementById('disp-driver-name').value = ''; 
+                return; 
+            }
             const matchedVeh = appData.vehicles.find(v => v.id === vehicleId);
             if (matchedVeh) {
                 const isPump = matchedVeh.code.includes('مضخة') || matchedVeh.code.toLowerCase().includes('pump');
@@ -1038,8 +1043,15 @@
                 document.getElementById('card-veh-driver').innerText = matchedVeh.driver || 'غير محدد';
                 document.getElementById('disp-driver-name').value = matchedVeh.driver !== 'غير محدد' ? matchedVeh.driver : '';
                 card.classList.remove('hidden');
-                if (isPump) { mixerFields.classList.add('hidden'); pumpFields.classList.remove('hidden'); }
-                else { mixerFields.classList.remove('hidden'); pumpFields.classList.add('hidden'); }
+
+                // التبديل بين حقول المضخة وحقول الخباطة/الآليات الأخرى
+                if (isPump) { 
+                    mixerFields.classList.add('hidden'); 
+                    pumpFields.classList.remove('hidden'); 
+                } else { 
+                    mixerFields.classList.remove('hidden'); 
+                    pumpFields.classList.add('hidden'); 
+                }
             }
             calculateTotalTankFuel();
         }
@@ -1080,20 +1092,18 @@
             updateDashboardStats();
         }
 
+        // حفظ التجهيز بدون الحاجة لاختيار المجهز
         function saveDispatch(e) {
             e.preventDefault();
             if (currentUserRole === 'VIEW') return;
             if (!activeDispatchVehicleId) return alert('الرجاء اختيار الآلية');
-
-            const supplierId = document.getElementById('disp-supplier').value;
-            if (!supplierId) return alert('الرجاء اختيار المجهز');
 
             const driverName = document.getElementById('disp-driver-name').value.trim();
             const existingInTank = parseFloat(document.getElementById('disp-qty-existing').value) || 0;
             const qty = parseFloat(document.getElementById('disp-qty').value);
             const totalStock = getTotalRemainingForSite(currentSite);
 
-            if (qty > totalStock) return alert(`الكمية المجهزة (${qty}) أكبر من الرصيد المتاح (${totalStock.toFixed(1)} لتر)`);
+            if (qty > totalStock) return alert(`الكمية المجهزة (${qty}) أكبر من الرصيد المتاح بالموقع (${totalStock.toFixed(1)} لتر)`);
 
             const vehObj = appData.vehicles.find(v => v.id === activeDispatchVehicleId);
             if (vehObj && driverName && (!vehObj.driver || vehObj.driver === 'غير محدد')) vehObj.driver = driverName;
@@ -1117,7 +1127,6 @@
             appData[currentSite].dispatches.push({
                 id: 'disp-' + Date.now(),
                 vehicleId: activeDispatchVehicleId,
-                supplierId,
                 driverName: driverName || (vehObj ? vehObj.driver : ''),
                 existingInTank,
                 qty,
@@ -1136,7 +1145,6 @@
             populateDispatchUnifiedOptions();
         }
 
-        // تحسين دوال الحسابات للحماية من أخطاء البيانات الكامنة (TypeError Safe Guard)
         function getSupplierTotalReceived(supplierId) { 
             return (appData[currentSite]?.receipts || []).filter(r => r.supplierId === supplierId).reduce((a, b) => a + (b.qty || 0), 0); 
         }
@@ -1217,10 +1225,6 @@
             if (recSup) {
                 let opts = (appData[currentSite]?.suppliers || []).map(s => `<option value="${s.id}">${s.name}</option>`).join('');
                 recSup.innerHTML = opts + `<option value="__ADD_NEW__" class="text-emerald-400 font-bold">+ إضافة مجهز جديد...</option>`;
-            }
-            const dispSup = document.getElementById('disp-supplier');
-            if (dispSup) {
-                dispSup.innerHTML = '<option value="">-- اختر المجهز المرتبط --</option>' + (appData[currentSite]?.suppliers || []).map(s => `<option value="${s.id}">${s.name}</option>`).join('');
             }
             populateDispatchUnifiedOptions();
         }
@@ -1373,7 +1377,7 @@
                             <td class="p-3">${siteBadge}</td>
                             <td class="p-3 font-bold text-white text-xs md:text-base">${d.driverName || '-'}</td>
                             <td class="p-3 font-bold text-amber-400 text-xs md:text-base">${d.qty.toFixed(1)} لتر</td>
-                            <td class="p-3 text-xs md:text-sm">${d.type === 'pump' ? `ساعات: ${d.pumpHours} | كونكريت: ${d.concreteQty}م³` : `KM: ${d.km} | وصولات: ${d.tripsCount}`}</td>
+                            <td class="p-3 text-xs md:text-sm">${d.type === 'pump' ? `ساعات: ${d.pumpHours} | كونكريت: ${d.concreteQty}م³` : `KM: ${d.km} | وصولات: ${d.tripsCount} | للموقع الآخر: ${d.otherSiteTrips}`}</td>
                             <td class="p-3 text-slate-400 text-xs md:text-sm">${d.notes || '-'}</td>
                             <td class="p-3 text-center read-only-hide space-x-1 space-x-reverse">
                                 <button onclick="openEditModal('dispatch', '${d.id}', '${d.siteSource}')" class="text-teal-400 font-bold px-2 py-1 bg-slate-950 rounded text-xs">تعديل</button>
