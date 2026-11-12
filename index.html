@@ -17,9 +17,9 @@
     
     <!-- Firebase JS SDK (v10 Modular via CDN) -->
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-analytics.js";
-        import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/13.3.0/firebase-app.js";
+        import { getAnalytics } from "https://www.gstatic.com/firebasejs/13.3.0/firebase-analytics.js";
+        import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/13.3.0/firebase-database.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyA83O0LcIsNFuo-b_DVptMRYUjEmG0EUmA",
@@ -49,8 +49,24 @@
                 localStorage.setItem('FUEL_MANAGEMENT_SHARED_VEHICLES_V1', JSON.stringify(window.appData));
                 if (window.currentSite && typeof window.renderDashboard === 'function') {
                     window.renderDashboard();
+                    if (typeof window.renderSupplierCards === 'function' && !document.getElementById('tab-suppliers').classList.contains('hidden')) {
+                        window.renderSupplierCards();
+                        if (window.selectedSupplierId && !document.getElementById('supplier-detail-view').classList.contains('hidden')) {
+                            window.renderSupplierDetail();
+                        }
+                    }
+                    if (typeof window.renderVehicleCards === 'function' && !document.getElementById('tab-vehicles').classList.contains('hidden')) {
+                        window.renderVehicleCards();
+                        if (window.selectedVehicleId && !document.getElementById('vehicle-detail-view').classList.contains('hidden')) {
+                            window.renderVehicleDetail();
+                        }
+                    }
                 }
+            } else if (window.appData) {
+                set(appDataRef, sanitizeAppData(window.appData)).catch(err => console.error("Firebase Init Write Error:", err));
             }
+        }, (error) => {
+            console.error("Firebase Realtime Database Read Error:", error);
         });
     </script>
     
@@ -681,7 +697,7 @@
         let currentUserRole = null; 
         let html5QrCodeScanner = null;
 
-        let appData = {
+        var appData = {
             north: {
                 suppliers: [{ id: 'sup-n1', name: 'شركة التجهيزات الشمالية' }],
                 receipts: [],
@@ -787,7 +803,8 @@
                 appData = sanitizeAppData(appData);
                 localStorage.setItem(STORAGE_KEY, JSON.stringify(appData));
                 if (window.firebaseDb && window.dbRef && window.dbSet) {
-                    window.dbSet(window.dbRef(window.firebaseDb, 'appData'), appData);
+                    window.dbSet(window.dbRef(window.firebaseDb, 'appData'), appData)
+                        .catch(err => console.error("Firebase Write Error:", err));
                 }
             } catch(e) { console.warn('Storage unavailable:', e); }
         }
@@ -805,7 +822,7 @@
                 }
             } catch(e) { console.warn('Storage error:', e); }
             appData = sanitizeAppData(appData);
-            saveData();
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(appData));
         }
 
         function selectSite(site) {
