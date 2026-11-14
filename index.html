@@ -381,7 +381,7 @@
             </div>
         </section>
 
-        <!-- TAB 3: DISPATCH FUEL (تم تعديل مسميات الكاز بدلاً من الغاز) -->
+        <!-- TAB 3: DISPATCH FUEL -->
         <section id="tab-dispatch" class="hidden max-w-3xl mx-auto">
             <div class="bg-slate-900 p-4 sm:p-8 md:p-10 rounded-3xl border border-slate-800 shadow-2xl space-y-6 md:space-y-8">
                 <div class="border-b border-slate-800 pb-4 md:pb-5">
@@ -416,9 +416,15 @@
                         </div>
                     </div>
 
-                    <div>
-                        <label class="block text-sm md:text-base font-bold text-slate-300 mb-2">اسم السائق (اختياري)</label>
-                        <input type="text" id="disp-driver-name" placeholder="أدخل اسم السائق..." class="w-full p-3.5 md:p-4 text-base md:text-lg bg-slate-950 border border-slate-700 text-white rounded-xl font-bold">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm md:text-base font-bold text-slate-300 mb-2">اسم السائق (اختياري)</label>
+                            <input type="text" id="disp-driver-name" placeholder="أدخل اسم السائق..." class="w-full p-3.5 md:p-4 text-base md:text-lg bg-slate-950 border border-slate-700 text-white rounded-xl font-bold">
+                        </div>
+                        <div>
+                            <label class="block text-sm md:text-base font-bold text-slate-300 mb-2">تاريخ التجهيز *</label>
+                            <input type="date" id="disp-date" required class="w-full p-3.5 md:p-4 text-base md:text-lg bg-slate-950 border border-slate-700 text-white rounded-xl font-bold">
+                        </div>
                     </div>
 
                     <!-- حقول الكاز بالترتيب المطلوب -->
@@ -541,7 +547,7 @@
                             <table class="w-full text-right text-xs md:text-base min-w-[550px]">
                                 <thead class="bg-slate-800 text-slate-300 font-bold">
                                     <tr>
-                                        <th class="p-3">التاريخ والوقت</th>
+                                        <th class="p-3">التاريخ</th>
                                         <th class="p-3">رمز الآلية</th>
                                         <th class="p-3">السائق</th>
                                         <th class="p-3">الكمية (لتر)</th>
@@ -610,7 +616,7 @@
                         <table class="w-full text-right text-xs md:text-lg min-w-[600px]">
                             <thead class="bg-slate-800 text-slate-300 font-bold">
                                 <tr>
-                                    <th class="p-3 md:p-4">التاريخ والوقت</th>
+                                    <th class="p-3 md:p-4">التاريخ</th>
                                     <th class="p-3 md:p-4">الموقع</th>
                                     <th class="p-3 md:p-4">السائق</th>
                                     <th class="p-3 md:p-4">الكمية</th>
@@ -838,7 +844,9 @@
             document.getElementById('btn-change-site-text').innerText = (['NORTH', 'SOUTH'].includes(currentUserRole) ? 'تسجيل الخروج' : 'تغيير الموقع / الرئيسية');
 
             switchTab('dashboard');
-            document.getElementById('rec-date').value = new Date().toISOString().split('T')[0];
+            const todayStr = new Date().toISOString().split('T')[0];
+            document.getElementById('rec-date').value = todayStr;
+            document.getElementById('disp-date').value = todayStr;
             document.getElementById('stat-filter-month').value = new Date().toISOString().substring(0, 7);
         }
 
@@ -850,7 +858,13 @@
             if (tabId === 'dashboard') renderDashboard();
             if (tabId === 'suppliers') { closeSupplierDetail(); renderSupplierCards(); }
             if (tabId === 'vehicles') { closeVehicleDetail(); renderVehicleCards(); }
-            if (tabId === 'dispatch') { populateDispatchUnifiedOptions(); updateDropdowns(); }
+            if (tabId === 'dispatch') { 
+                populateDispatchUnifiedOptions(); 
+                updateDropdowns();
+                if (!document.getElementById('disp-date').value) {
+                    document.getElementById('disp-date').value = new Date().toISOString().split('T')[0];
+                }
+            }
             if (tabId === 'receive') updateDropdowns();
         }
 
@@ -1115,6 +1129,7 @@
             if (!activeDispatchVehicleId) return alert('الرجاء اختيار الآلية');
 
             const driverName = document.getElementById('disp-driver-name').value.trim();
+            const date = document.getElementById('disp-date').value || new Date().toISOString().split('T')[0];
             const existingInTank = parseFloat(document.getElementById('disp-qty-existing').value) || 0;
             const qty = parseFloat(document.getElementById('disp-qty').value);
             const totalStock = getTotalRemainingForSite(currentSite);
@@ -1137,8 +1152,6 @@
             };
 
             const notes = document.getElementById('disp-notes').value.trim();
-            const now = new Date();
-            const dateStr = now.toISOString().split('T')[0] + ' ' + now.toTimeString().split(' ')[0].substring(0, 5);
 
             appData[currentSite].dispatches.push({
                 id: 'disp-' + Date.now(),
@@ -1149,13 +1162,14 @@
                 totalInTank: existingInTank + qty,
                 ...specificData,
                 notes,
-                date: dateStr,
+                date: date,
                 sourceSite: currentSite
             });
 
             saveData();
             alert('تم التجهيز وحفظ البيانات بنجاح!');
             e.target.reset();
+            document.getElementById('disp-date').value = new Date().toISOString().split('T')[0];
             document.getElementById('selected-veh-details-card').classList.add('hidden');
             activeDispatchVehicleId = null;
             populateDispatchUnifiedOptions();
@@ -1428,6 +1442,7 @@
                 html = `
                     <div><label class="block text-xs md:text-sm font-bold text-slate-300 mb-1">كمية الكاز المجهزة (لتر)</label><input type="number" step="0.1" id="edit-qty" value="${record.qty}" required class="w-full p-3 bg-slate-950 border border-slate-700 text-white rounded-xl font-bold text-base"></div>
                     <div><label class="block text-xs md:text-sm font-bold text-slate-300 mb-1">اسم السائق</label><input type="text" id="edit-driver" value="${record.driverName || ''}" class="w-full p-3 bg-slate-950 border border-slate-700 text-white rounded-xl font-bold text-base"></div>
+                    <div><label class="block text-xs md:text-sm font-bold text-slate-300 mb-1">التاريخ</label><input type="date" id="edit-date" value="${record.date || ''}" required class="w-full p-3 bg-slate-950 border border-slate-700 text-white rounded-xl font-bold text-base"></div>
                     <div><label class="block text-xs md:text-sm font-bold text-slate-300 mb-1">الملاحظات</label><textarea id="edit-notes" class="w-full p-3 bg-slate-950 border border-slate-700 text-white rounded-xl text-base">${record.notes || ''}</textarea></div>
                 `;
             }
@@ -1449,9 +1464,9 @@
             if (!record) return;
 
             record.qty = parseFloat(document.getElementById('edit-qty').value);
+            record.date = document.getElementById('edit-date').value;
             if (type === 'receipt') {
                 record.carNumber = document.getElementById('edit-car').value.trim();
-                record.date = document.getElementById('edit-date').value;
             } else {
                 record.driverName = document.getElementById('edit-driver').value.trim();
             }
